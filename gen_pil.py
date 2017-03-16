@@ -1,16 +1,10 @@
 import sys
 from PIL import Image
-import pygame
-from pygame import gfxdraw
-from pygame import Color
 import cmath
 import random
 
-pygame.init()
-
 # The small size will help for future generation.
 unit   = 100
-# unit   = 75
 width  = 3 * unit
 height = 2 * unit
 
@@ -49,7 +43,7 @@ def iterate_sequence(seq_fn, max_iter, c):
     # that the sequence does not diverge and return 0 as intensity.
     return 0
             
-def draw_mandel(seq_fn, max_iter, re_min = -2, re_max = 1, im_min = -1, im_max = 1):
+def draw_mandel(seq_fn, max_iter, re_min, re_max, im_min, im_max):
     """
     Computes the mandelbrot set on a given part of the complex plane.
     """
@@ -106,7 +100,7 @@ def sort_section_intensities(sec_to_int):
     """
     return sorted(sec_to_int.keys(), key = sec_to_int.get, reverse = True)
 
-def generate_fractal_sequence(seq_fn = lambda z, c: z**2 + c, seq_len = 8, top_select = 5):
+def generate_fractal_sequence(seq_fn = lambda z, c: z**2 + c, seq_len = 8, top_select = 5, return_steps = False):
     """
     Generates the multiple zoom on the Mandelbrot set. seq_len
     pictures will be generated and the zoom will chose amongst the
@@ -114,27 +108,25 @@ def generate_fractal_sequence(seq_fn = lambda z, c: z**2 + c, seq_len = 8, top_s
     """
     tl = complex(-2, 1) # top left complex number
     br = complex(1, -1) # bottom right complex number
+    result = []
     for i in range(seq_len):
         min_re, max_re             = tl.real, br.real
         min_im, max_im             = br.imag, tl.imag
         # Experimental formula to have greater max_iter when we zoom
         max_iter                   = 50 + i ** 3 * 16
-        print('iteration', i + 1)
-        print('min_re, max_re = ', min_re, ',', max_re)
-        print('min_im, max_im = ', min_im, ',', max_im)
-        print('max_iter', max_iter)
         # Draw the fractal in the window, divide the result in
         # sections and compute their intensities. Chose one of the
         # most intense section and update the top left and bottom
         # right complex numbers to zoom on this section.
-        screen_array               = draw_mandel(seq_fn, max_iter, min_re, max_re, min_im, max_im) 
+        screen_array               = draw_mandel(seq_fn, max_iter, min_re, max_re, min_im, max_im)
         sec_to_int                 = sections_to_intensities(screen_array)
         w_sec_max, h_sec_max       = random.choice(sort_section_intensities(sec_to_int)[:top_select])
         x_min, x_max, y_min, y_max = sec_number_to_indices(w_sec_max, h_sec_max)
         tl                         = convert_pixel_complex(x_min, y_min, min_re, max_re, min_im, max_im) 
         br                         = convert_pixel_complex(x_max, y_max, min_re, max_re, min_im, max_im) 
+        result.append(screen_array)
 
-    return screen_array
+    return result if return_steps else result[-1]
         
 def save_screen(screen_array, filename = 'renders/test.bmp'):
     """
@@ -146,5 +138,5 @@ def save_screen(screen_array, filename = 'renders/test.bmp'):
     img.save(filename)
 
 if __name__ == '__main__':
-    final = generate_fractal_sequence(seq_fn = lambda z, c: z ** 3 + c, seq_len = 3)
+    final = generate_fractal_sequence(seq_fn = lambda z, c: z ** 2 + c, seq_len = 4)
     save_screen(final)
