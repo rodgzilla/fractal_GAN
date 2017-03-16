@@ -140,7 +140,7 @@ def save_screen(screen_array, filename = 'renders/test.bmp'):
 
 def render_image(filename, seq_fn = lambda z, c: z ** 2 + c, seq_len = 5):
     print('rendering', filename)
-    final = generate_fractal_sequence(seq_fn = lambda z, c: z ** 2 + c, seq_len = 4)
+    final = generate_fractal_sequence(seq_fn = lambda z, c: z ** 2 + c, seq_len = seq_len)
     save_screen(final, filename)
     print(filename, 'done')
 
