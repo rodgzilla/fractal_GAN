@@ -22,7 +22,6 @@ section_height = int(height / nb_sections)
 # We select the region on which we zoom amongst the top_select most bright
 top_select = 20
 
-
 def convert_pixel_complex(x, y, re_min, re_max, im_min, im_max):
     """
     Converts pixel coordinates to complex plane coordinates. The re and
@@ -33,7 +32,22 @@ def convert_pixel_complex(x, y, re_min, re_max, im_min, im_max):
 
     return complex(re, im)
 
-def draw_mandel(window, sequence, max_iter, re_min = -2, re_max = 1, im_min = -1, im_max = 1):
+def iterate_sequence(seq_fn, max_iter, c):
+    z = c
+    for i in range(max_iter):
+        z = seq_fn(z, c)
+        # If we detect that the sequence diverges
+        if (z.real * z.real + z.imag * z.imag) > 4:
+            # The value of the pixel intensity will be proportional to
+            # the number of iterations we ran before detecting the
+            # divergence
+            color_ratio = int((i * 255.) / max_iter)
+            return color_ratio
+    # If we did not detect a divergence in max_iter steps, we consider
+    # that the sequence does not diverge and return 0 as intensity.
+    return 0
+            
+def draw_mandel(window, seq_fn, max_iter, re_min = -2, re_max = 1, im_min = -1, im_max = 1):
     """
     Computes the mandelbrot set on a given part of the complex plane.
     """
@@ -45,24 +59,14 @@ def draw_mandel(window, sequence, max_iter, re_min = -2, re_max = 1, im_min = -1
             c = convert_pixel_complex(x, y, re_min, re_max, im_min, im_max)
             # Then, compute max_iter element of sequence function with
             # c as initial value
-            z = c
-            for i in range(max_iter):
-                z = sequence(z, c)
-                # If we detect that the sequence diverges
-                if (z.real * z.real + z.imag * z.imag) > 4:
-                    # We draw a pixel which intensity corresponds to
-                    # the number of iterations we ran before detecting
-                    # the divergence.
-                    color_ratio = int((i * 255.) / max_iter)
-                    gfxdraw.pixel(window, x, y, Color(color_ratio, color_ratio, color_ratio, 255))
-                    screen_array[x][y] = color_ratio
-                    break
-            else:
-                # If we did not detect a divergence in max_iter steps,
-                # we consider that the sequence does not diverge and
-                # draw a black pixel.
-                gfxdraw.pixel(window, x, y, Color(0,0,0,255))
+            screen_array[x][y] = iterate_sequence(seq_fn, max_iter, c)
 
+
+    for x in range(width):
+        for y in range(height):
+            v     = screen_array[x][y]
+            color = Color(v, v, v, 255)
+            gfxdraw.pixel(window, x, y, color)
     pygame.display.flip()
 
     return screen_array
@@ -108,7 +112,7 @@ def sort_section_intensities(sec_to_int):
     """
     return sorted(sec_to_int.keys(), key = sec_to_int.get, reverse = True)
 
-def generate_fractal_sequence(window, sequence = lambda z, c: z**2 + c, seq_len = 8, top_select = 5):
+def generate_fractal_sequence(window, seq_fn = lambda z, c: z**2 + c, seq_len = 8, top_select = 5):
     """
     Generates the multiple zoom on the Mandelbrot set. seq_len
     pictures will be generated and the zoom will chose amongst the
@@ -129,7 +133,7 @@ def generate_fractal_sequence(window, sequence = lambda z, c: z**2 + c, seq_len 
         # sections and compute their intensities. Chose one of the
         # most intense section and update the top left and bottom
         # right complex numbers to zoom on this section.
-        screen_array               = draw_mandel(window, sequence, max_iter, min_re, max_re, min_im, max_im) 
+        screen_array               = draw_mandel(window, seq_fn, max_iter, min_re, max_re, min_im, max_im) 
         sec_to_int                 = sections_to_intensities(screen_array)
         w_sec_max, h_sec_max       = random.choice(sort_section_intensities(sec_to_int)[:top_select])
         x_min, x_max, y_min, y_max = sec_number_to_indices(w_sec_max, h_sec_max)
