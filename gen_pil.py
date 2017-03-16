@@ -1,4 +1,5 @@
 import sys
+from PIL import Image
 import pygame
 from pygame import gfxdraw
 from pygame import Color
@@ -8,7 +9,8 @@ import random
 pygame.init()
 
 # The small size will help for future generation.
-unit   = 75
+unit   = 100
+# unit   = 75
 width  = 3 * unit
 height = 2 * unit
 
@@ -47,7 +49,7 @@ def iterate_sequence(seq_fn, max_iter, c):
     # that the sequence does not diverge and return 0 as intensity.
     return 0
             
-def draw_mandel(window, seq_fn, max_iter, re_min = -2, re_max = 1, im_min = -1, im_max = 1):
+def draw_mandel(seq_fn, max_iter, re_min = -2, re_max = 1, im_min = -1, im_max = 1):
     """
     Computes the mandelbrot set on a given part of the complex plane.
     """
@@ -60,14 +62,6 @@ def draw_mandel(window, seq_fn, max_iter, re_min = -2, re_max = 1, im_min = -1, 
             # Then, compute max_iter element of sequence function with
             # c as initial value
             screen_array[x][y] = iterate_sequence(seq_fn, max_iter, c)
-
-
-    for x in range(width):
-        for y in range(height):
-            v     = screen_array[x][y]
-            color = Color(v, v, v, 255)
-            gfxdraw.pixel(window, x, y, color)
-    pygame.display.flip()
 
     return screen_array
 
@@ -112,7 +106,7 @@ def sort_section_intensities(sec_to_int):
     """
     return sorted(sec_to_int.keys(), key = sec_to_int.get, reverse = True)
 
-def generate_fractal_sequence(window, seq_fn = lambda z, c: z**2 + c, seq_len = 8, top_select = 5):
+def generate_fractal_sequence(seq_fn = lambda z, c: z**2 + c, seq_len = 8, top_select = 5):
     """
     Generates the multiple zoom on the Mandelbrot set. seq_len
     pictures will be generated and the zoom will chose amongst the
@@ -133,20 +127,24 @@ def generate_fractal_sequence(window, seq_fn = lambda z, c: z**2 + c, seq_len = 
         # sections and compute their intensities. Chose one of the
         # most intense section and update the top left and bottom
         # right complex numbers to zoom on this section.
-        screen_array               = draw_mandel(window, seq_fn, max_iter, min_re, max_re, min_im, max_im) 
+        screen_array               = draw_mandel(seq_fn, max_iter, min_re, max_re, min_im, max_im) 
         sec_to_int                 = sections_to_intensities(screen_array)
         w_sec_max, h_sec_max       = random.choice(sort_section_intensities(sec_to_int)[:top_select])
         x_min, x_max, y_min, y_max = sec_number_to_indices(w_sec_max, h_sec_max)
         tl                         = convert_pixel_complex(x_min, y_min, min_re, max_re, min_im, max_im) 
         br                         = convert_pixel_complex(x_max, y_max, min_re, max_re, min_im, max_im) 
 
+    return screen_array
+        
+def save_screen(screen_array, filename = 'renders/test.bmp'):
+    """
+    Save the array in a file. The saving is done using PIL.
+    """
+    data = [(screen_array[x][y],) * 3 for y in range(height) for x in range(width)]
+    img  = Image.new('RGB', (width, height))
+    img.putdata(data)
+    img.save(filename)
 
 if __name__ == '__main__':
-    window = pygame.display.set_mode((width, height))
-
-    generate_fractal_sequence(window, seq_len = 6)
-
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit(0)
+    final = generate_fractal_sequence(seq_fn = lambda z, c: z ** 3 + c, seq_len = 3)
+    save_screen(final)
