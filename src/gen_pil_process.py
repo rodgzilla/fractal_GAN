@@ -5,7 +5,7 @@ import multiprocessing
 import sys
 
 # The small size will help for future generation.
-unit   = 100
+unit   = 64
 width  = 3 * unit
 height = 2 * unit
 
